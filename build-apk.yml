@@ -1,0 +1,56 @@
+name: Build Release APK
+
+# Builds the Topaz Alt Android APK on GitHub's own runners (which have
+# full access to the Flutter SDK, Android SDK, and Google's Maven repos)
+# so you don't need any local Flutter/Android install to get an .apk.
+#
+# Usage:
+#   1. Push this whole "topaz-ai" folder to a new GitHub repository
+#      (as the repo root, so pubspec.yaml sits at the top level).
+#   2. Go to the repo's "Actions" tab on GitHub — this workflow runs
+#      automatically on every push to main, or click "Run workflow" to
+#      trigger it manually.
+#   3. When the run finishes (green check), open it and download the
+#      "release-apk" artifact from the "Artifacts" section at the bottom
+#      of the run summary page. That zip contains app-release.apk.
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: "3.22.0"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze (non-blocking)
+        run: flutter analyze || true
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
